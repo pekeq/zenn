@@ -1,0 +1,9 @@
+{
+  "name": "Zenn",
+  "version": "1.0.0",
+  "description": "My Zenn.dev articles.",
+  "author": "Hideo Matsumoto <pekeq.9@gmail.com>",
+  "dependencies": {
+    "zenn-cli": "^0.1.94"
+  }
+}
