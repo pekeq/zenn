@@ -4,6 +4,6 @@
   "description": "My Zenn.dev articles.",
   "author": "Hideo Matsumoto <pekeq.9@gmail.com>",
   "dependencies": {
-    "zenn-cli": "^0.1.94"
+    "zenn-cli": "^0.1.96"
   }
 }
