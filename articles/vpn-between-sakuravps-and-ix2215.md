@@ -3,11 +3,11 @@ title: "さくらVPS上のUbuntu 24とNEC IX2215間でIPv4 over IPv6 VPNする"
 emoji: "🥌"
 type: "tech"
 topics: ["network","vpn","ix2215","strongswan"]
-published: false
+published: true
 ---
 # はじめに
 
-本記事では、さくらVPSとフレッツ光間のIPv6ネットワークを経由して、IPv4プライベートアドレスを持つ2つのネットワーク間を接続するIKEv2/IPsec VPNトンネルの構築例を紹介します。
+本記事では、さくらVPSとフレッツ光 (IPv6 IPoE) 間のIPv6ネットワークを経由して、IPv4プライベートアドレスを持つ2つのネットワーク間を接続するIKEv2/IPsec VPNトンネルの構築例を紹介します。
 
 # 前提条件
 
@@ -15,7 +15,7 @@ published: false
 |-|-|-|
 |機種|Ubuntu 24.04 on さくらVPS|NEC UNIVERGE IX2215|
 |バージョン|Ubuntu 24.04.3 LTS|IX2215 10.11.9|
-|対向IPv6アドレス|2401:2500:102::52|2409:10:2900::1|
+|IPv6アドレス|2401:2500:102::52|2409:10:2900::1|
 |IPv4 プライベートアドレス|192.168.18.10/24|192.168.19.1/24|
 
 # Ubuntu 24 (さくらVPS上) の設定
@@ -24,6 +24,7 @@ published: false
 
 - さくらVPSでIPv6の設定がされていること
   - [IPv6有効化](https://manual.sakura.ad.jp/vps/network/index.html#ipv6) (manual.sakura.ad.jp)
+- IPv4ルーティングが有効になっていること (`net.ipv4.ip_forward=1`)
 
 ## strongSwanインストール
 
@@ -61,7 +62,9 @@ sudo ufw allow proto esp from 2409:10:2900::1 to any
 
 ## strongSwan設定
 
-```properties:home.conf
+Pre-Shared Key (事前共有鍵) が含まれているので、ファイルのパーミッションを適切に設定してください。
+
+```properties:/etc/swanctl/conf.d/home.conf
 connections {
   home {
     local_addrs = 2401:2500:102::52
@@ -103,7 +106,7 @@ secrets {
 ! デバッグ用にIKEv2のログレベルを上げる
 logging subsystem ike2 notice
 
-! 192.168.18.0/24をVPNトンネルインタフェースに向ける
+! さくらVPS側のプライベートネットワーク (192.168.18.0/24) をVPNトンネルインタフェースに向ける
 ip route 192.168.18.0/24 Tunnel10.0
 
 ! 対向ホストからのIKEv2, ESP通信を許可
