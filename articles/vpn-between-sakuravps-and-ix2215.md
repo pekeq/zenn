@@ -1,5 +1,5 @@
 ---
-title: "さくらVPS上のUbuntu 24とNEC IX2215間でIPv4 over IPv6 VPNする"
+title: "さくらVPS上のUbuntu 24とNEC IX2215間でIPv4 over IPv6 IKEv2/IPsec VPNする"
 emoji: "🥌"
 type: "tech"
 topics: ["network","vpn","ix2215","strongswan"]
@@ -7,7 +7,9 @@ published: true
 ---
 # はじめに
 
-本記事では、さくらVPSとフレッツ光 (IPv6 IPoE) 間のIPv6ネットワークを経由して、IPv4プライベートアドレスを持つ2つのネットワーク間を接続するIKEv2/IPsec VPNトンネルの構築例を紹介します。
+本記事では、さくらVPSとフレッツ光 (IPv6 IPoE) 間で、IPv6ネットワークを経由してIPv4プライベートネットワーク同士を接続する IPv4 over IPv6 IKEv2/IPsec VPN の構築例を紹介します。
+
+フレッツ光のPPPoE接続によるIPv4アドレスは変動する可能性がありますが、IPoE接続によるIPv6アドレスは (VNE事業者を変える等しない限り) 半固定的に扱えるため、固定IPv6アドレスとして扱うことができます。DDNS等を利用せずに比較的安定したVPN接続が可能です。
 
 # 前提条件
 
@@ -22,9 +24,10 @@ published: true
 
 ## 前提条件
 
-- さくらVPSでIPv6の設定がされていること
-  - [IPv6有効化](https://manual.sakura.ad.jp/vps/network/index.html#ipv6) (manual.sakura.ad.jp)
-- IPv4ルーティングが有効になっていること (`net.ipv4.ip_forward=1`)
+- IPv6有効化
+  - さくらVPSでIPv6の設定がされていること (参照: [IPv6有効化](https://manual.sakura.ad.jp/vps/network/index.html#ipv6) (manual.sakura.ad.jp))
+- IPv4ルーティング有効化
+  - IPv4ルーティングが有効になっていること (`net.ipv4.ip_forward=1`)
 
 ## strongSwanインストール
 
@@ -34,7 +37,7 @@ sudo apt install charon-systemd strongswan-swanctl
 
 ## ループバックインターフェース上にサブネット (192.168.18.0/24) 作成
 
-このサブネットがさくらVPS側のローカル側ネットワークとして扱われます。
+ループバックインターフェース (lo) 上にサブネット (192.168.18.0/24) を作成します。このサブネットがさくらVPS側のプライベート側ネットワークとして扱われます。
 
 ```yaml:/etc/netplan/99-local.yaml
 network:
@@ -82,7 +85,6 @@ connections {
         remote_ts = 192.168.19.0/24
         local_ts = 192.168.18.0/24
         start_action = start
-        updown = /usr/lib/ipsec/_updown iptables
         esp_proposals = aes256-sha512-modp3072
       }
     }
@@ -106,7 +108,7 @@ secrets {
 ! デバッグ用にIKEv2のログレベルを上げる
 logging subsystem ike2 notice
 
-! さくらVPS側のプライベートネットワーク (192.168.18.0/24) をVPNトンネルインタフェースに向ける
+! VPS側のプライベートネットワーク (192.168.18.0/24) をトンネルインタフェースに向ける
 ip route 192.168.18.0/24 Tunnel10.0
 
 ! 対向ホストからのIKEv2, ESP通信を許可
@@ -171,6 +173,7 @@ show ikev2 child-sa
 # 参考
 
 - [Configuration Examples](https://wiki.strongswan.org/projects/strongswan/wiki/ConfigurationExamples) (wiki.strongswan.org)
+- [swanctl.conf Configuration](https://docs.strongswan.org/docs/latest/swanctl/swanctlConf.html) (docs.strongswan.org)
 - [UNIVERGE IXシリーズ コマンドリファレンスマニュアル](https://jpn.nec.com/univerge/ix/Manual/index.html?#crm) (jpn.nec.com)
 - [UNIVERGE IXシリーズ 機能説明書](https://jpn.nec.com/univerge/ix/Manual/index.html?#fd) (jpn.nec.com)
 - [UNIVERGE IXシリーズ 設定事例集](https://jpn.nec.com/univerge/ix/Manual/index.html?#ex) (jpn.nec.com)
